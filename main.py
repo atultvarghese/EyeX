@@ -176,7 +176,7 @@ while True:
 
         dir = direction(nose_point, ANCHOR_POINT, w, h)
         cv2.putText(frame, dir.upper(), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
-        drag = 18
+        drag = 10
         if dir == 'right':
             pag.moveRel(drag, 0)
         elif dir == 'left':
