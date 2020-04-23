@@ -38,19 +38,19 @@ def mouth_aspect_ratio(mouth):
     return mar
 
 
-# Return direction given the nose and anchor points.
-def direction(nose_point, anchor_point, w, h, multiple=1):
+# Return direction given the nose and anchor points for circle.
+def direction(nose_point, anchor_point, r, multiple=1):
     nx, ny = nose_point
     x, y = anchor_point
 
-    if nx > x + multiple * w:
+    if nx > x + multiple * r:
         return 'right'
-    elif nx < x - multiple * w:
+    elif nx < x - multiple * r:
         return 'left'
 
-    if ny > y + multiple * h:
+    if ny > y + multiple * r:
         return 'down'
-    elif ny < y - multiple * h:
+    elif ny < y - multiple * r:
         return 'up'
 
-    return '-'
+    return 'center'

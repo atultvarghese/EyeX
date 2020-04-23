@@ -5,6 +5,7 @@ import pyautogui as pag
 import imutils
 import dlib
 import cv2
+import subprocess
 
 # Thresholds and consecutive frame length for triggering the mouse action.
 MOUTH_AR_THRESH = 0.6
@@ -14,17 +15,23 @@ EYE_AR_CONSECUTIVE_FRAMES = 15
 WINK_AR_DIFF_THRESH = 0.01
 WINK_AR_CLOSE_THRESH = 0.19
 WINK_CONSECUTIVE_FRAMES = 10
+KEYBOARD_CONSICUTIVE_FRAME = 30
+
 
 # Initialize the frame counters for each action as well as 
 # booleans used to indicate if action is performed or not
 MOUTH_COUNTER = 0
 EYE_COUNTER = 0
 WINK_COUNTER = 0
+KEYBOARD_COUNTER = 0
+
 INPUT_MODE = False
 EYE_CLICK = False
 LEFT_WINK = False
 RIGHT_WINK = False
 SCROLL_MODE = False
+TYPING_MODE = False
+
 ANCHOR_POINT = (0, 0)
 WHITE_COLOR = (255, 255, 255)
 YELLOW_COLOR = (0, 255, 255)
@@ -112,7 +119,7 @@ while True:
     cv2.drawContours(frame, [rightEyeHull], -1, YELLOW_COLOR, 1)
 
     for (x, y) in np.concatenate((mouth, leftEye, rightEye), axis=0):
-        cv2.circle(frame, (x, y), 2, GREEN_COLOR, -1)
+        cv2.circle(frame, (x, y), 2, YELLOW_COLOR, -1)
         
     # Check to see if the eye aspect ratio is below the blink
     # threshold, and if so, increment the blink frame counter
@@ -140,6 +147,7 @@ while True:
     else:
         if ear <= EYE_AR_THRESH:
             EYE_COUNTER += 1
+            KEYBOARD_COUNTER += 1
 
             if EYE_COUNTER > EYE_AR_CONSECUTIVE_FRAMES:
                 SCROLL_MODE = not SCROLL_MODE
@@ -147,10 +155,20 @@ while True:
                 EYE_COUNTER = 0
 
                 # nose point to draw a bounding box around it
+            if KEYBOARD_COUNTER > KEYBOARD_CONSICUTIVE_FRAME:
+                TYPING_MODE = not TYPING_MODE
 
+                KEYBOARD_COUNTER = 0
+                if TYPING_MODE:
+                    SCROLL_MODE = not SCROLL_MODE
+                    # onboard is a virtal keyboard in linux
+                    process = subprocess.Popen("onboard")
+                else:
+                    process.kill()
         else:
             EYE_COUNTER = 0
             WINK_COUNTER = 0
+            KEYBOARD_COUNTER = 0
 
     if mar > MOUTH_AR_THRESH:
         MOUTH_COUNTER += 1
@@ -166,35 +184,42 @@ while True:
         MOUTH_COUNTER = 0
 
     if INPUT_MODE:
-        cv2.putText(frame, "READING INPUT!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
-        x, y = ANCHOR_POINT
+        cv2.putText(frame, "EYEX ACTIVATED!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
+        
+        x = int(cam_w/2)
+        y = int(cam_h/2)
+        ANCHOR_POINT = (x,y)
         nx, ny = nose_point
-        w, h = 60, 35
+        r = 65
         multiple = 1
-        cv2.rectangle(frame, (x - w, y - h), (x + w, y + h), GREEN_COLOR, 2)
-        cv2.line(frame, ANCHOR_POINT, nose_point, BLUE_COLOR, 2)
+        cv2.circle(frame, (x,y), r, GREEN_COLOR, 4)
+        cv2.line(frame, ANCHOR_POINT, nose_point, BLUE_COLOR, 4)
 
-        dir = direction(nose_point, ANCHOR_POINT, w, h)
-        cv2.putText(frame, dir.upper(), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
+        dir = direction(nose_point, ANCHOR_POINT, r)
+        cv2.putText(frame, dir.upper(), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
         drag = 10
+        scroll = 20
         if dir == 'right':
             pag.moveRel(drag, 0)
         elif dir == 'left':
             pag.moveRel(-drag, 0)
         elif dir == 'up':
             if SCROLL_MODE:
-                pag.scroll(40)
+                pag.scroll(scroll)
             else:
                 pag.moveRel(0, -drag)
         elif dir == 'down':
             if SCROLL_MODE:
-                pag.scroll(-40)
+                pag.scroll(-scroll)
             else:
                 pag.moveRel(0, drag)
 
-    if SCROLL_MODE:
-        cv2.putText(frame, 'SCROLL MODE IS ON!', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
-
+        if SCROLL_MODE:
+            cv2.putText(frame, 'SCROLL MODE IS ON!', (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
+    
+        if TYPING_MODE:
+            cv2.putText(frame, 'TYPING MODE IS ON!', (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, RED_COLOR, 2)
+            
     # cv2.putText(frame, "MAR: {:.2f}".format(mar), (500, 30),
     #             cv2.FONT_HERSHEY_SIMPLEX, 0.7, YELLOW_COLOR, 2)
     # cv2.putText(frame, "Right EAR: {:.2f}".format(rightEAR), (460, 80),
